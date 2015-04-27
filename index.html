@@ -1,0 +1,54 @@
+<html>
+<head>
+<style>
+svg.chart {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: scroll;
+}
+
+text {
+    font-family: "Helvetica", sans-serif;
+    fill: black;
+    font-size: 10px;
+}
+</style>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+    var lanes = 20,
+        beginning_year = 1918,
+        margin = {top: 25, bottom: 25, left: 50, right: 75},
+        width = $(window).width(),
+        height = $(window).height() * 2,
+        xScale = d3.scale.linear()
+            .domain([1, lanes])
+            .range([margin.left, width - margin.right]),
+        yScale = d3.scale.linear()
+            .domain([beginning_year, 2015])
+            .range([margin.top, height - margin.bottom]);
+
+    d3.json('greek_parties.json', function(results) {
+        var svg = d3.select('body').append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .attr('class', 'chart');
+
+        var text = svg.selectAll('text')
+            .data(results).enter()
+            .append('text');
+
+        var textLabels = text
+            .attr("x", function(d) { return xScale(parseInt(d['lane'])); })
+            .attr("y", function(d) { return yScale(parseInt(d['year'])); })
+            .text( function (d) { return d['party-short-name']; });
+    });
+});
+</script>
+</head>
+<body>
+</body>
+</html>
