@@ -6,6 +6,7 @@ svg.chart {
     left: 0;
     top: 0;
     overflow: scroll;
+    shape-rendering: geometricPrecision;
 }
 
 text {
@@ -17,6 +18,12 @@ text {
 text.blank-year {
     fill: gray;
     opacity: 0.5;
+}
+
+.party-connect-indirect, .party-connect-direct {
+    fill: none;
+    stroke: black;
+    stroke-width: 1px;
 }
 </style>
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>

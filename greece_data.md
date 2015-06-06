@@ -10,6 +10,8 @@
 # direct-successor-party-slug: kkeinterior
 # indirect-successor-party-slugs: kke, omle
 # split-party-slugs:
+# party-key-figures:
+# party-tradition:
 
 # year: 1946
 # lane: 18
@@ -21,6 +23,8 @@
 # direct-successor-party-slug:
 # indirect-successor-party-slugs: kdke, ede
 # split-party-slugs:
+# party-key-figures:
+# party-tradition:
 
 # year: 1958
 # lane: 16
@@ -32,6 +36,8 @@
 # direct-successor-party-slug: okde
 # indirect-successor-party-slugs:
 # split-party-slugs: ede
+# party-key-figures:
+# party-tradition:
 
 # year: 1958
 # lane: 20
@@ -43,6 +49,8 @@
 # direct-successor-party-slug: eek
 # indirect-successor-party-slugs:
 # split-party-slugs:
+# party-key-figures:
+# party-tradition:
 
 # year: 1964
 # lane: 10
