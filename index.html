@@ -11,8 +11,14 @@ svg.chart {
 
 text {
     font-family: "Helvetica", sans-serif;
-    fill: black;
     font-size: 10px;
+}
+
+.party {
+    font-family: "Helvetica", sans-serif;
+    font-size: 10px;
+    position: absolute;
+    text-align: center;
 }
 
 text.blank-year {
@@ -23,7 +29,11 @@ text.blank-year {
 .party-connect-indirect, .party-connect-direct {
     fill: none;
     stroke: black;
-    stroke-width: 1px;
+    stroke-width: 4px;
+}
+
+.party-connect-indirect:hover, .party-connect-direct:hover {
+    stroke: red;
 }
 </style>
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>

@@ -1,3 +1,9 @@
+d3.selection.prototype.moveToFront = function() {
+  return this.each(function(){
+    this.parentNode.appendChild(this);
+  });
+};
+
 var PartyGraph = function(options) {
     this.options = options;
     this.xScale = d3.scale.linear()
@@ -13,7 +19,7 @@ var PartyGraph = function(options) {
 PartyGraph.prototype.generateYears = function() {
     var graph = this,
         years = [];
-    _.each(_.range(graph.options.begin_year, graph.options.end_year), function(year) {
+    _.each(_.range(graph.options.begin_year, graph.options.end_year + 1), function(year) {
         var valid = true;
         _.each(graph.options.skip_periods, function(period) {
             if (period.begin == year) {
@@ -31,31 +37,84 @@ PartyGraph.prototype.generateYears = function() {
 }
 
 PartyGraph.prototype.drawResults = function(results) {
+    var graph = this;
     this.data = results;
 
     this.svg = d3.select('body').append('svg')
         .attr('width', this.options.width * 1.05)
         .attr('height', this.options.height)
+        .attr('id', 'chart')
         .attr('class', 'chart');
 
-    this.drawYears();
+    var text = d3.select('body').selectAll('#labels')
+        .data([results]).enter()
+        .append('div')
+        .attr('id', 'labels');
 
-    var text = this.svg.selectAll('text.party')
-        .data(results).enter()
-        .append('text')
-        .attr('class', function(d) { return 'party party-' + d['party-slug'] + ' year-' + d['year']; })
-        .style('max-width', this.options.laneWidth);
+    text = text.selectAll(".party").data(results, function(d) { return d['party-slug'] + '-' + d['year'] });
+
+    textEnter = text.enter().append("div")
+      .attr("class", function(d) { return "party party-" + d['party-slug'] + " year-" + d['year']; })
+      .text(function(d) { return d['party-short-name']; });
+
     var graph = this,
+        svg = document.getElementById('chart'),
         textLabels = text
-            .attr("x", function(d) { return graph.xScale(parseInt(d['lane'])) + .5 * graph.options.laneWidth; })
-            .attr("y", function(d) { return graph.yScale(String(d['year'])); })
-            .text( function (d) { return d['party-short-name']; });
+            .style("left", function(d) {
+                var pt = svg.createSVGPoint();
+                console.log(graph.options);
+                pt.x = graph.xScale(parseInt(d['lane']));
+                pt.y = 0;
+                pt = pt.matrixTransform(svg.getScreenCTM().inverse());
+                return pt.x;
+            })
+            .style("top", function(d) {
+                var pt = svg.createSVGPoint();
+                pt.x = 0;
+                pt.y = graph.yScale(String(d['year']));
+                pt = pt.matrixTransform(svg.getScreenCTM().inverse());
+                return pt.y - graph.options.textPadding * 2;
+            })
+            .style("width", this.options.laneWidth)
+            .html(function (d) { return d['party-short-name']; });
 
     this.drawConnections();
+    this.drawYears();
+
+    $('.party-connect').on("mouseover", function(selected) {
+            graph.svg.selectAll('.party-connect')[0]
+                .sort(function(a, b) {
+                    if ($(a)[0].id === selected.currentTarget.id) {
+                        return 1;
+                    } else {
+                        if ($(b)[0].id === selected.currentTarget.id) {
+                            return -1;
+                        } else {
+                            return 0;
+                        }
+                    }
+                });
+        });
 }
 
 PartyGraph.prototype.getWidthOfLabel = function(year, slug) {
+    console.log(year, slug, '.party-' + slug + '.year-' + year, $('.party-' + slug ));
     return $('.party-' + slug + '.year-' + year).width();
+}
+
+PartyGraph.prototype.getWidthOfLabelInSvg = function(year, slug) {
+    var svg = document.getElementById('chart'),
+        topLeftPt = svg.createSVGPoint(),
+        topRightPt = svg.createSVGPoint(),
+        labelPt = $('.party-' + slug + '.year-' + year)[0].getBoundingClientRect();
+    topLeftPt.x = labelPt.left;
+    topLeftPt.y = labelPt.top;
+    topRightPt.x = labelPt.right;
+    topRightPt.y = labelPt.top;
+    topLeftPt = topLeftPt.matrixTransform(svg.getScreenCTM().inverse());
+    topRightPt = topRightPt.matrixTransform(svg.getScreenCTM().inverse());
+    console.log(year, slug, topRightPt.x - topLeftPt.x);
+    return topRightPt.x - topLeftPt.x;
 }
 
 PartyGraph.prototype.getPosition = function(year, slug) {
@@ -109,21 +168,24 @@ PartyGraph.prototype.connectDirect = function(year, startSlug, endSlug) {
     var graph = this,
         startCoords = this.getPosition(year, startSlug),
         endCoords,
-        endYear = null;
+        endYear = null,
+        connectionId = year + "-" + startSlug + "-" + endSlug;
     _.each(this.data, function(item) {
         if (item['party-slug'] == endSlug && item['year'] > year && endYear == null) {
             endYear = item['year'];
         }
     });
     endCoords = this.getPosition(endYear, endSlug);
+
     this.svg.append("line")
-        .attr("x1", startCoords.x + this.options.textPadding)
+        .attr("x1", startCoords.x)
         .attr("y1", startCoords.y + this.options.textPadding)
-        .attr("x2", endCoords.x + this.options.textPadding)
+        .attr("x2", endCoords.x)
         .attr("y2", endCoords.y - this.options.textPadding - this.options.fontSize)
         .attr("stroke-width", 0.5)
         .attr("stroke", "black")
-        .attr("class", "party-connect-direct");
+        .attr("class", "party-connect party-connect-direct")
+        .attr("id", connectionId);
 }
 
 PartyGraph.prototype.connectIndirect = function(year, startSlug, endSlug) {
@@ -138,7 +200,8 @@ PartyGraph.prototype.connectIndirect = function(year, startSlug, endSlug) {
         strokeWidth = 0.5,
         strokeColor = "black",
         direction = "right",
-        margin = 0;
+        margin = this.getWidthOfLabelInSvg(year, startSlug) * .5,
+        connectionId = year + "-" + startSlug + "-" + endSlug;
 
     _.each(this.data, function(item) {
         if (item['party-slug'] == endSlug && item['year'] > year && endYear == null) {
@@ -153,10 +216,9 @@ PartyGraph.prototype.connectIndirect = function(year, startSlug, endSlug) {
 
     if (startCoords.x < endCoords.x) {
         direction = "left";
-        margin = this.getWidthOfLabel(year, startSlug) + 5;
     } else {
         direction = "right";
-        margin = -5;
+        margin *= -1;
     }
     startCoords.x += margin;
 
@@ -166,23 +228,24 @@ PartyGraph.prototype.connectIndirect = function(year, startSlug, endSlug) {
                 y: startCoords.y - 0.3 * this.options.fontSize
             },
             {
-                x: middleCoords.x + this.options.textPadding,
+                x: middleCoords.x,
                 y: middleCoords.y - 0.3 * this.options.fontSize
             },
             {
-                x: endCoords.x + this.options.textPadding,
+                x: endCoords.x,
                 y: endCoords.y - this.options.textPadding - this.options.fontSize
             }
         ]
 
     var line = d3.svg.line()
-                .interpolate("linear")
-                .tension(tension)
-                .x(function(d) { return d.x; })
-                .y(function(d) { return d.y; });
+        .interpolate("linear")
+        .tension(tension)
+        .x(function(d) { return d.x; })
+        .y(function(d) { return d.y; });
 
     g.append("path")
-        .attr("class", function(d) { return "party-connect-indirect" })
+        .attr("class", function(d) { return "party-connect party-connect-indirect" })
+        .attr("id", connectionId)
         .attr("d", function(d) { return graph.elbow(points, direction, margin); });
 }
 
