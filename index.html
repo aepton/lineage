@@ -1,35 +1,55 @@
 <html>
 <head>
 <style>
+body {
+    background-image: url('background.jpg');
+    background-attachment: fixed;
+    background-size: cover;
+    background-repeat: no-repeat;
+    font-family: "Helvetica", sans-serif;
+}
+
+#headline {
+    color: white;
+    height: 10%;
+    width: 95%;
+    left: 2.5%;
+    position: absolute;
+    top: 0;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
 svg.chart {
     position: absolute;
-    left: 0;
-    top: 0;
+    left: 2.5%;
     overflow: scroll;
     shape-rendering: geometricPrecision;
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 text {
-    font-family: "Helvetica", sans-serif;
     font-size: 10px;
+    color: white;
+    fill: white;
 }
 
 .party {
-    font-family: "Helvetica", sans-serif;
     font-size: 10px;
     position: absolute;
     text-align: center;
+    color: white;
 }
 
 text.blank-year {
-    fill: gray;
+    fill: #eee;
     opacity: 0.5;
 }
 
 .party-connect-indirect, .party-connect-direct {
     fill: none;
-    stroke: black;
-    stroke-width: 4px;
+    stroke: white;
+    stroke-width: 2px;
 }
 
 .party-connect-indirect:hover, .party-connect-direct:hover {
@@ -42,5 +62,6 @@ text.blank-year {
 <script src="index.js"></script>
 </head>
 <body>
+<h1 id="headline">Origins of the Greek Left</h1>
 </body>
 </html>

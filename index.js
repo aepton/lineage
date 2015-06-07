@@ -41,10 +41,11 @@ PartyGraph.prototype.drawResults = function(results) {
     this.data = results;
 
     this.svg = d3.select('body').append('svg')
-        .attr('width', this.options.width * 1.05)
+        .attr('width', this.options.width)
         .attr('height', this.options.height)
         .attr('id', 'chart')
-        .attr('class', 'chart');
+        .attr('class', 'chart')
+        .style('top', $('#headline').offset()['top'] + $('#headline').height());
 
     var text = d3.select('body').selectAll('#labels')
         .data([results]).enter()
@@ -62,18 +63,17 @@ PartyGraph.prototype.drawResults = function(results) {
         textLabels = text
             .style("left", function(d) {
                 var pt = svg.createSVGPoint();
-                console.log(graph.options);
-                pt.x = graph.xScale(parseInt(d['lane']));
+                pt.x = graph.xScale(parseInt(d['lane'])) + $('svg.chart').offset()['left'];
                 pt.y = 0;
                 pt = pt.matrixTransform(svg.getScreenCTM().inverse());
-                return pt.x;
+                return pt.x + $('svg.chart').offset()['left'];
             })
             .style("top", function(d) {
                 var pt = svg.createSVGPoint();
                 pt.x = 0;
-                pt.y = graph.yScale(String(d['year']));
+                pt.y = graph.yScale(String(d['year'])) + $('svg.chart').offset()['top'];
                 pt = pt.matrixTransform(svg.getScreenCTM().inverse());
-                return pt.y - graph.options.textPadding * 2;
+                return pt.y - graph.options.textPadding * 2 + $('svg.chart').offset()['top'];
             })
             .style("width", this.options.laneWidth)
             .html(function (d) { return d['party-short-name']; });
@@ -290,8 +290,8 @@ PartyGraph.prototype.elbow = function(points, direction, margin) {
 
 $(document).ready(function() {
     var lanes = 20,
-        width = $(window).width() * 1.1,
-        height = $(window).height() * 1.5,
+        width = $(window).width() * .95,// * 1.1,
+        height = $(window).height() * 2,// * 1.5,
         graph = new PartyGraph({
         lanes: lanes,
         begin_year: 1918,
