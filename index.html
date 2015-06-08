@@ -24,7 +24,7 @@ svg.chart {
     position: absolute;
     left: 2.5%;
     overflow: scroll;
-    shape-rendering: geometricPrecision;
+    shape-rendering: optimizeSpeed;
     background-color: rgba(0, 0, 0, 0.5);
 }
 
@@ -41,6 +41,12 @@ text {
     color: white;
 }
 
+.coalition {
+    position: absolute;
+    border: 1px solid white;
+    pointer-events: none;
+}
+
 text.blank-year {
     fill: #eee;
     opacity: 0.5;
@@ -52,8 +58,11 @@ text.blank-year {
     stroke-width: 2px;
 }
 
-.party-connect-indirect:hover, .party-connect-direct:hover {
-    stroke: red;
+.highlight {
+    color: yellow;
+    stroke: yellow;
+    fill: none;
+    stroke-width: 2px;
 }
 </style>
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>

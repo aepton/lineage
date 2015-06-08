@@ -56,28 +56,32 @@ PartyGraph.prototype.drawResults = function(results) {
 
     textEnter = text.enter().append("div")
       .attr("class", function(d) { return "party party-" + d['party-slug'] + " year-" + d['year']; })
-      .text(function(d) { return d['party-short-name']; });
+      .text(function(d) { return d['party-short-name']; })
+      .on("mouseover", function(d) {
+        graph.highlightSuccessors(d);
+      })
+      .on("mouseout", function() {
+        $('.party').removeClass('highlight');
+        $('svg').find('.highlight')
+            .attr('class', function() {
+                this.classList.remove('highlight');
+                return this.classList.toString();
+            });
+      });
 
     var graph = this,
         svg = document.getElementById('chart'),
         textLabels = text
             .style("left", function(d) {
-                var pt = svg.createSVGPoint();
-                pt.x = graph.xScale(parseInt(d['lane'])) + $('svg.chart').offset()['left'];
-                pt.y = 0;
-                pt = pt.matrixTransform(svg.getScreenCTM().inverse());
-                return pt.x + $('svg.chart').offset()['left'];
+                return graph.getPositionFromSvg(d).x + $('svg.chart').offset()['left'];
             })
             .style("top", function(d) {
-                var pt = svg.createSVGPoint();
-                pt.x = 0;
-                pt.y = graph.yScale(String(d['year'])) + $('svg.chart').offset()['top'];
-                pt = pt.matrixTransform(svg.getScreenCTM().inverse());
-                return pt.y - graph.options.textPadding * 2 + $('svg.chart').offset()['top'];
+                return graph.getPositionFromSvg(d).y - graph.options.textPadding * 2 + $('svg.chart').offset()['top'];
             })
             .style("width", this.options.laneWidth)
             .html(function (d) { return d['party-short-name']; });
 
+    this.drawCoalitions();
     this.drawConnections();
     this.drawYears();
 
@@ -97,8 +101,78 @@ PartyGraph.prototype.drawResults = function(results) {
         });
 }
 
+PartyGraph.prototype.drawCoalitions = function() {
+    var graph = this,
+        coalitions = {};
+    _.each(graph.data, function(party) {
+        var boxId = party['coalition-slug'] + party['year'],
+            startPt = graph.getPositionFromSvg(party);
+        if (party['coalition-slug']) {
+            var endPt = $.extend({}, startPt);
+            endPt.x += graph.getWidthOfLabelInSvg(party['year'], party['party-slug']);
+            endPt.y += graph.getHeightOfLabelInSvg(party['year'], party['party-slug']);
+            if (_.keys(coalitions).indexOf(boxId) == -1) {
+                coalitions[boxId] = {
+                    topLeft: startPt,
+                    bottomRight: endPt
+                };
+            }
+            if (endPt.y > coalitions[boxId].bottomRight.y) {
+                coalitions[boxId].bottomRight.y = endPt.y;
+            }
+            if (endPt.x > coalitions[boxId].bottomRight.x) {
+                coalitions[boxId].bottomRight.x = endPt.x;
+            }
+        }
+    });
+
+    var cboxes = d3.select('body').selectAll('#coalitions')
+        .data([_.pairs(coalitions)]).enter()
+        .append('div')
+        .attr('id', 'coalitions');
+
+    cboxes = cboxes.selectAll(".coalition").data(_.pairs(coalitions), function(d) { return d[0]; });
+
+    cboxEnter = cboxes.enter().append("div")
+      .attr("class", "coalition")
+      .style("top", function(d) { return d[1].topLeft.y + $('svg.chart').offset()['top'] - graph.options.fontSize })
+      .style("left", function(d) { return d[1].topLeft.x + $('svg.chart').offset()['left']})
+      .style("width", function(d) { return d[1].bottomRight.x - d[1].topLeft.x })
+      .style("height", function(d) { return d[1].bottomRight.y - d[1].topLeft.y });
+}
+
+PartyGraph.prototype.highlightSuccessors = function(party) {
+    var graph = this,
+        successorSlugs = [],
+        successors = [];
+    if (party['direct-successor-party-slug']) {
+        successorSlugs.push(party['direct-successor-party-slug']);
+    }
+    _.each(party['indirect-successor-party-slugs'], function(slug) {
+        successorSlugs.push(slug);
+    });
+    _.each(successorSlugs, function(slug) {
+        $('svg').find('#' + party['year'] + '-' + party['party-slug'] + '-' + slug)
+            .attr('class', function() {
+                this.classList.add('highlight');
+                return this.classList.toString();
+            });
+    });
+    _.each(this.data, function(candidate) {
+        if (successorSlugs.indexOf(candidate['party-slug']) != -1 &&
+            parseInt(candidate['year']) > parseInt(party['year'])) {
+            successors.push(candidate);
+            successorSlugs = _.without(successorSlugs, candidate['party-slug']);
+        }
+    });
+    $('.party.party-' + party['party-slug'] + '.year-' + party['year']).addClass('highlight');
+    _.each(successors, function(successor) {
+        $('.party.party-' + successor['party-slug'] + '.year-' + successor['year']).addClass('highlight');
+        graph.highlightSuccessors(successor);
+    });
+}
+
 PartyGraph.prototype.getWidthOfLabel = function(year, slug) {
-    console.log(year, slug, '.party-' + slug + '.year-' + year, $('.party-' + slug ));
     return $('.party-' + slug + '.year-' + year).width();
 }
 
@@ -113,8 +187,30 @@ PartyGraph.prototype.getWidthOfLabelInSvg = function(year, slug) {
     topRightPt.y = labelPt.top;
     topLeftPt = topLeftPt.matrixTransform(svg.getScreenCTM().inverse());
     topRightPt = topRightPt.matrixTransform(svg.getScreenCTM().inverse());
-    console.log(year, slug, topRightPt.x - topLeftPt.x);
     return topRightPt.x - topLeftPt.x;
+}
+
+PartyGraph.prototype.getHeightOfLabelInSvg = function(year, slug) {
+    var svg = document.getElementById('chart'),
+        topLeftPt = svg.createSVGPoint(),
+        bottomLeftPt = svg.createSVGPoint(),
+        labelPt = $('.party-' + slug + '.year-' + year)[0].getBoundingClientRect();
+    topLeftPt.x = labelPt.left;
+    topLeftPt.y = labelPt.top;
+    bottomLeftPt.x = labelPt.left;
+    bottomLeftPt.y = labelPt.bottom;
+    topLeftPt = topLeftPt.matrixTransform(svg.getScreenCTM().inverse());
+    bottomLeftPt = bottomLeftPt.matrixTransform(svg.getScreenCTM().inverse());
+    return bottomLeftPt.y - topLeftPt.y;
+}
+
+PartyGraph.prototype.getPositionFromSvg = function(party) {
+    var svg = document.getElementById('chart'),
+        pt = svg.createSVGPoint();
+    pt.x = this.xScale(parseInt(party['lane'])) + $('svg.chart').offset()['left'];
+    pt.y = this.yScale(String(party['year'])) + $('svg.chart').offset()['top'];
+    pt = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return pt;
 }
 
 PartyGraph.prototype.getPosition = function(year, slug) {
@@ -152,7 +248,7 @@ PartyGraph.prototype.drawYears = function() {
         .attr('class', 'year');
 
     var textLabels = text
-            .attr("x", 0)
+            .attr("x", 10)
             .attr("y", function(d) { return graph.yScale(String(d)); })
             .attr("class", function(d) {
                 var classes = "year";
@@ -179,7 +275,7 @@ PartyGraph.prototype.connectDirect = function(year, startSlug, endSlug) {
 
     this.svg.append("line")
         .attr("x1", startCoords.x)
-        .attr("y1", startCoords.y + this.options.textPadding)
+        .attr("y1", startCoords.y + this.getHeightOfLabelInSvg(year, startSlug))
         .attr("x2", endCoords.x)
         .attr("y2", endCoords.y - this.options.textPadding - this.options.fontSize)
         .attr("stroke-width", 0.5)
@@ -225,11 +321,11 @@ PartyGraph.prototype.connectIndirect = function(year, startSlug, endSlug) {
     var points = [
             {
                 x: startCoords.x,
-                y: startCoords.y - 0.3 * this.options.fontSize
+                y: startCoords.y - this.getHeightOfLabelInSvg(year, startSlug) * .3
             },
             {
                 x: middleCoords.x,
-                y: middleCoords.y - 0.3 * this.options.fontSize
+                y: middleCoords.y - this.getHeightOfLabelInSvg(year, startSlug) * .3
             },
             {
                 x: endCoords.x,
@@ -305,7 +401,7 @@ $(document).ready(function() {
         laneWidth: width/lanes
     });
 
-    d3.json('greek_parties.json', function(results) {
+    d3.json('new_parties.json', function(results) {
         graph.drawResults(results);
     });
 });

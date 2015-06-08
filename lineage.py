@@ -27,4 +27,4 @@ def load_data(path):
 
 
 if __name__ == '__main__':
-    print json.dumps(load_data('greece_data.md'))
+    print json.dumps(load_data('data.txt'))
