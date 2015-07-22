@@ -123,6 +123,16 @@ PartyGraph.prototype.drawCoalitions = function() {
             if (endPt.x > coalitions[boxId].bottomRight.x) {
                 coalitions[boxId].bottomRight.x = endPt.x;
             }
+
+            if (party['coalition-badge']) {
+                if (party['coalition-badge'] == 'left') {
+                    coalitions[boxId].badge = {
+                        x: coalitions[boxId].topLeft.x,
+                        y: coalitions[boxId].topLeft.y,
+                        name: party['coalition-name']
+                    };
+                }
+            }
         }
     });
 
@@ -139,6 +149,26 @@ PartyGraph.prototype.drawCoalitions = function() {
       .style("left", function(d) { return d[1].topLeft.x + $('svg.chart').offset()['left']})
       .style("width", function(d) { return d[1].bottomRight.x - d[1].topLeft.x })
       .style("height", function(d) { return d[1].bottomRight.y - d[1].topLeft.y });
+
+    cboxBadges = cboxes.enter().append("p")
+      .attr("class", "coalition-badge")
+      .style("top", function(d) { return d[1].topLeft.y + $('svg.chart').offset()['top'] })
+      .style("left", function(d) { return d[1].topLeft.x + $('svg.chart').offset()['left']})
+      .style("height", function(d) { return d[1].bottomRight.y - d[1].topLeft.y })
+      .style("font-size", function(d) { return d[1].bottomRight.y - d[1].topLeft.y + "px" })
+      .html(function(d) { if (d[1].badge) { return d[1].badge.name; }});
+
+    console.log(cboxBadges);
+    _.each(cboxBadges[0], function(badge) {
+        console.log(badge);
+        if (!$(badge).width()) {
+            return;
+        }
+        $(badge).css({
+            'left': $(badge).offset()['left'] - $(badge).width() + 'px'
+        });
+        //badge.attr("left")
+    });
 }
 
 PartyGraph.prototype.highlightSuccessors = function(party) {
@@ -401,7 +431,7 @@ $(document).ready(function() {
         laneWidth: width/lanes
     });
 
-    d3.json('new_parties.json', function(results) {
+    d3.json('partiesv3.json', function(results) {
         graph.drawResults(results);
     });
 });
